@@ -8,7 +8,7 @@ local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 local GUN_NAME = "GunDrop"
-local MAX_DISTANCE = 10000
+local MAX_DISTANCE = 1000
 local DISTANCE_ABOVE = 0
 
 if _G.AutoGrabGunActive == nil then
