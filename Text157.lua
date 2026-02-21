@@ -1,109 +1,94 @@
 -- ======================
--- ESP DROPPED GUN (BORDE NEGRO EN TEXTO)
+-- AUTO GRAB GUN OPTIMIZADO
 -- ======================
 
+local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
+local LocalPlayer = Players.LocalPlayer
 local GUN_NAME = "GunDrop"
-local gunColor = Color3.fromRGB(255, 255, 0)
+local MAX_DISTANCE = 10000
+local DISTANCE_ABOVE = 0
 
--- ======================
--- TOGGLE GLOBAL
--- ======================
-if _G.GunESP == nil then
-    _G.GunESP = true
-else
-    _G.GunESP = not _G.GunESP
+if _G.AutoGrabGunActive == nil then
+    _G.AutoGrabGunActive = false
 end
 
-if not _G.trackedGuns then _G.trackedGuns = {} end
-local trackedGuns = _G.trackedGuns
-
--- ======================
--- FUNCIONES
--- ======================
-local function addGunESP(obj)
-    if trackedGuns[obj] then return end
-    if not obj:IsA("BasePart") then return end
-
-    local hl = Instance.new("Highlight")
-    hl.Name = "GunESP"
-    hl.Adornee = obj
-    hl.FillColor = gunColor
-    hl.OutlineColor = gunColor
-    hl.FillTransparency = 0.5
-    hl.OutlineTransparency = 0
-    hl.Parent = obj
-
-    local gui = Instance.new("BillboardGui")
-    gui.Name = "GunLabel"
-    gui.Adornee = obj
-    gui.Size = UDim2.new(0,150,0,50)
-    gui.StudsOffset = Vector3.new(0,2,0)
-    gui.AlwaysOnTop = true
-    gui.Parent = obj
-
-    local text = Instance.new("TextLabel")
-    text.Size = UDim2.new(1,0,1,0)
-    text.BackgroundTransparency = 1
-    text.TextColor3 = gunColor
-    text.TextScaled = true
-    text.Font = Enum.Font.SourceSansBold
-    text.Text = "Dropped\ngun!!"
-    text.RichText = true
-
-    -- 🔥 BORDE NEGRO
-    text.TextStrokeTransparency = 0
-    text.TextStrokeColor3 = Color3.fromRGB(0,0,0)
-
-    text.Parent = gui
-
-    trackedGuns[obj] = {highlight = hl, gui = gui}
-end
-
-local function removeGunESP(obj)
-    local data = trackedGuns[obj]
-    if data then
-        if data.highlight and data.highlight.Parent then data.highlight:Destroy() end
-        if data.gui and data.gui.Parent then data.gui:Destroy() end
-        trackedGuns[obj] = nil
+-- Toggle
+if _G.AutoGrabGunActive then
+    _G.AutoGrabGunActive = false
+    if _G._AutoGrabGunConnection then
+        _G._AutoGrabGunConnection:Disconnect()
+        _G._AutoGrabGunConnection = nil
     end
-end
-
-local function ClearAllGuns()
-    for obj, _ in pairs(trackedGuns) do
-        removeGunESP(obj)
-    end
-end
-
--- ======================
--- DESACTIVAR
--- ======================
-if not _G.GunESP then
-    ClearAllGuns()
-    warn("❌ ESP DROPPED GUN DESACTIVADO")
+    print("❌ Auto Grab Gun desactivado")
     return
 end
 
-warn("✅ ESP DROPPED GUN ACTIVADO")
+_G.AutoGrabGunActive = true
+print("✅ Auto Grab Gun activado")
 
--- ======================
--- LOOP CADA 1 SEGUNDO
--- ======================
-task.spawn(function()
-    while _G.GunESP do
-        for _, obj in ipairs(Workspace:GetDescendants()) do
-            if obj.Name == GUN_NAME and obj:IsA("BasePart") then
-                addGunESP(obj)
+local gun = nil
+local angle = 0
+local searchCooldown = 0
+
+local function isMurderer()
+    local char = LocalPlayer.Character
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+
+    if char then
+        for _, t in ipairs(char:GetChildren()) do
+            if t:IsA("Tool") and t.Name == "Knife" then
+                return true
             end
         end
+    end
 
-        for obj, _ in pairs(trackedGuns) do
-            if not obj or not obj.Parent then
-                removeGunESP(obj)
+    if backpack then
+        for _, t in ipairs(backpack:GetChildren()) do
+            if t:IsA("Tool") and t.Name == "Knife" then
+                return true
             end
         end
+    end
 
-        task.wait(0.5)
+    return false
+end
+
+local function findGun()
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj.Name == GUN_NAME and obj:IsA("BasePart") then
+            return obj
+        end
+    end
+    return nil
+end
+
+_G._AutoGrabGunConnection = RunService.RenderStepped:Connect(function(delta)
+    if not _G.AutoGrabGunActive then return end
+    if isMurderer() then return end
+
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+
+    -- Buscar gun solo cada 0.5 segundos
+    searchCooldown = searchCooldown - delta
+    if searchCooldown <= 0 then
+        gun = findGun()
+        searchCooldown = 0.5
+    end
+
+    if gun and gun.Parent then
+        if (gun.Position - hrp.Position).Magnitude <= MAX_DISTANCE then
+            angle += delta * 2
+
+            local x = math.cos(angle)
+            local z = math.sin(angle)
+            local y = DISTANCE_ABOVE
+
+            gun.CFrame = CFrame.new(hrp.Position + Vector3.new(x, y, z))
+        end
     end
 end)
