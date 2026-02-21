@@ -1,9 +1,8 @@
 -- ======================
--- ESP DROPPED GUN (TOGGLE POR EJECUCIÓN)
+-- ESP DROPPED GUN (BORDE NEGRO EN TEXTO)
 -- ======================
 
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
 
 local GUN_NAME = "GunDrop"
 local gunColor = Color3.fromRGB(255, 255, 0)
@@ -17,9 +16,6 @@ else
     _G.GunESP = not _G.GunESP
 end
 
--- ======================
--- TABLA PARA SEGUIR LAS GUNS
--- ======================
 if not _G.trackedGuns then _G.trackedGuns = {} end
 local trackedGuns = _G.trackedGuns
 
@@ -55,6 +51,11 @@ local function addGunESP(obj)
     text.Font = Enum.Font.SourceSansBold
     text.Text = "Dropped\ngun!!"
     text.RichText = true
+
+    -- 🔥 BORDE NEGRO
+    text.TextStrokeTransparency = 0
+    text.TextStrokeColor3 = Color3.fromRGB(0,0,0)
+
     text.Parent = gui
 
     trackedGuns[obj] = {highlight = hl, gui = gui}
@@ -76,14 +77,10 @@ local function ClearAllGuns()
 end
 
 -- ======================
--- DESACTIVAR ESP SI TOGGLE OFF
+-- DESACTIVAR
 -- ======================
 if not _G.GunESP then
     ClearAllGuns()
-    if _G.GunESPConnection then
-        _G.GunESPConnection:Disconnect()
-        _G.GunESPConnection = nil
-    end
     warn("❌ ESP DROPPED GUN DESACTIVADO")
     return
 end
@@ -91,37 +88,22 @@ end
 warn("✅ ESP DROPPED GUN ACTIVADO")
 
 -- ======================
--- CONEXIONES
+-- LOOP CADA 1 SEGUNDO
 -- ======================
-local function TrackNew(obj)
-    if obj.Name == GUN_NAME and obj:IsA("BasePart") then
-        addGunESP(obj)
-    end
-end
-
-Workspace.DescendantAdded:Connect(function(obj)
-    if _G.GunESP then TrackNew(obj) end
-end)
-
-Workspace.DescendantRemoving:Connect(function(obj)
-    if obj.Name == GUN_NAME then
-        removeGunESP(obj)
-    end
-end)
-
--- Loop seguro para limpiar Guns desaparecidas
-_G.GunESPConnection = RunService.RenderStepped:Connect(function()
-    if not _G.GunESP then return end
-    for obj, _ in pairs(trackedGuns) do
-        if not obj or not obj.Parent then
-            removeGunESP(obj)
+task.spawn(function()
+    while _G.GunESP do
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj.Name == GUN_NAME and obj:IsA("BasePart") then
+                addGunESP(obj)
+            end
         end
+
+        for obj, _ in pairs(trackedGuns) do
+            if not obj or not obj.Parent then
+                removeGunESP(obj)
+            end
+        end
+
+        task.wait(0.5)
     end
 end)
-
--- Inicializar ESP para Guns existentes
-for _, obj in pairs(Workspace:GetDescendants()) do
-    if obj.Name == GUN_NAME and obj:IsA("BasePart") and _G.GunESP then
-        addGunESP(obj)
-    end
-end
