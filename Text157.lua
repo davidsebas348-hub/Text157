@@ -1,62 +1,97 @@
 -- ======================
--- AUTO GRAB GUN SIN DISTANCIA
+-- GUN ESP ORIGINAL (SIN LAG)
 -- ======================
 
-local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
 
-local LocalPlayer = Players.LocalPlayer
 local GUN_NAME = "GunDrop"
-local DISTANCE_ABOVE = 2
 
--- Toggle global
-if _G.AutoGrabGunActive == nil then
-    _G.AutoGrabGunActive = false
+if _G.GunESPActive == nil then
+    _G.GunESPActive = false
 end
 
--- Si ya estaba activo, desactivar
-if _G.AutoGrabGunActive then
-    _G.AutoGrabGunActive = false
-    if _G._AutoGrabGunConnection then
-        _G._AutoGrabGunConnection:Disconnect()
-        _G._AutoGrabGunConnection = nil
+-- Toggle
+if _G.GunESPActive then
+    _G.GunESPActive = false
+
+    if _G._GunESPObjects then
+        for _, v in pairs(_G._GunESPObjects) do
+            if v then v:Destroy() end
+        end
+        _G._GunESPObjects = nil
     end
-    print("❌ Auto Grab Gun desactivado")
+
+    if _G._GunESPConnection then
+        _G._GunESPConnection:Disconnect()
+        _G._GunESPConnection = nil
+    end
+
+    print("❌ Gun ESP desactivado")
     return
 end
 
--- Activar
-_G.AutoGrabGunActive = true
-print("✅ Auto Grab Gun activado")
+_G.GunESPActive = true
+_G._GunESPObjects = {}
+print("✅ Gun ESP activado")
 
-local gun = nil
+local function applyESP(gun)
 
--- Buscar gun en el workspace
-local function findGun()
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj.Name == GUN_NAME and obj:IsA("BasePart") then
-            return obj
-        end
-    end
-    return nil
+    -- Highlight amarillo
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = Color3.fromRGB(255, 255, 0)
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 0)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Adornee = gun
+    highlight.Parent = gun
+
+    -- Billboard GUI
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0, 120, 0, 50) -- tamaño fijo
+    billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = gun
+
+    local text = Instance.new("TextLabel")
+    text.Size = UDim2.new(1, 0, 1, 0)
+    text.BackgroundTransparency = 1
+    text.TextScaled = true
+    text.Font = Enum.Font.GothamBold
+    text.TextColor3 = Color3.fromRGB(255, 255, 0)
+    text.TextStrokeTransparency = 0
+    text.Text = "DROPPED\nGUN"
+    text.Parent = billboard
+
+    table.insert(_G._GunESPObjects, highlight)
+    table.insert(_G._GunESPObjects, billboard)
 end
 
--- Loop principal
-_G._AutoGrabGunConnection = RunService.RenderStepped:Connect(function(delta)
-    if not _G.AutoGrabGunActive then return end
+-- Detectar GunDrop sin escanear cada frame
+local function monitorModel(model)
+    if model:IsA("Model") and model:FindFirstChild("Spawns") then
 
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local hrp = char.HumanoidRootPart
+        -- Si ya existe
+        for _, obj in ipairs(model:GetDescendants()) do
+            if obj.Name == GUN_NAME and obj:IsA("BasePart") then
+                applyESP(obj)
+            end
+        end
 
-    -- Buscar gun si no hay una detectada
-    if not gun or not gun.Parent then
-        gun = findGun()
+        -- Cuando aparezca
+        model.DescendantAdded:Connect(function(obj)
+            if obj.Name == GUN_NAME and obj:IsA("BasePart") then
+                applyESP(obj)
+            end
+        end)
     end
+end
 
-    if gun and gun.Parent then
-        -- Posicionar gun encima tuyo
-        gun.CFrame = CFrame.new(hrp.Position + Vector3.new(0, DISTANCE_ABOVE, 0))
-    end
+-- Revisar mapas actuales
+for _, child in ipairs(Workspace:GetChildren()) do
+    monitorModel(child)
+end
+
+-- Detectar nuevo mapa
+_G._GunESPConnection = Workspace.ChildAdded:Connect(function(child)
+    monitorModel(child)
 end)
