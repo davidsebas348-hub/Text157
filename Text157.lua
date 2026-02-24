@@ -1,3 +1,5 @@
+repeat task.wait() until game:IsLoaded()
+
 -- ======================
 -- GUN ESP ORIGINAL (SIN LAG)
 -- ======================
