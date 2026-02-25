@@ -7,6 +7,8 @@ repeat task.wait() until LocalPlayer
 repeat task.wait() until LocalPlayer.Character
 repeat task.wait() until LocalPlayer.Character:FindFirstChild("Humanoid")
 
+task.wait(2)
+
 -- ======================
 -- GUN ESP ORIGINAL (SIN LAG)
 -- ======================
