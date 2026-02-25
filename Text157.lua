@@ -104,5 +104,13 @@ end
 
 -- Detectar nuevo mapa
 _G._GunESPConnection = Workspace.ChildAdded:Connect(function(child)
+    task.wait(0.1)
     monitorModel(child)
+end)
+
+Workspace.ChildRemoved:Connect(function(child)
+    task.wait(0.1)
+    for _, newChild in ipairs(Workspace:GetChildren()) do
+        monitorModel(newChild)
+    end
 end)
