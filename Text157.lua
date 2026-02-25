@@ -1,5 +1,12 @@
 repeat task.wait() until game:IsLoaded()
 
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+repeat task.wait() until LocalPlayer
+repeat task.wait() until LocalPlayer.Character
+repeat task.wait() until LocalPlayer.Character:FindFirstChild("Humanoid")
+
 -- ======================
 -- GUN ESP ORIGINAL (SIN LAG)
 -- ======================
